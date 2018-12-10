@@ -394,7 +394,7 @@ class Patches implements PluginInterface, EventSubscriberInterface {
     if (!$patched) {
       foreach ($patch_levels as $patch_level) {
         //use --dry-run to check if patch applies to prevent partial patches same as --check in git apply
-        if (false === $this->executeCommand("patch %s --dry-run --posix -t -d %s < %s", $patch_level, $install_path, $filename)) {
+        if (false === $this->executeCommand("patch %s --dry-run --posix -f -d %s < %s", $patch_level, $install_path, $filename)) {
           continue;
         }
         // --no-backup-if-mismatch here is a hack that fixes some
