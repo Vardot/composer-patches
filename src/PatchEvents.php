@@ -27,4 +27,13 @@ class PatchEvents {
    */
   const POST_PATCH_APPLY = 'post-patch-apply';
 
+
+  /**
+   * The PATCH_APPLY_ERROR event occurs after a patch fails.
+   *
+   * The event listener method receives a cweagans\Composer\PatchEvent instance.
+   *
+   * @var string
+   */
+  const PATCH_APPLY_ERROR = 'patch-apply-error';
 }

@@ -123,7 +123,7 @@ class Patches implements PluginInterface, EventSubscriberInterface {
         return;
       }
 
-      // Remove packages for which the patch set has changed.
+      // Remove and reinstall packages for which the patch set has changed.
       foreach ($packages as $package) {
         if (!($package instanceof AliasPackage)) {
           $package_name = $package->getName();
@@ -136,6 +136,9 @@ class Patches implements PluginInterface, EventSubscriberInterface {
             $uninstallOperation = new UninstallOperation($package, 'Removing package so it can be re-installed and re-patched.');
             $this->io->write('<info>Removing package ' . $package_name . ' so that it can be re-installed and re-patched.</info>');
             $installationManager->uninstall($localRepository, $uninstallOperation);
+            $installOperation = new InstallOperation($package, 'Re-install package.');
+            $this->io->write('<info>Re-installing package ' . $package_name . '.</info>');
+            $installationManager->install($localRepository, $installOperation);
           }
         }
       }
@@ -309,13 +312,14 @@ class Patches implements PluginInterface, EventSubscriberInterface {
     foreach ($this->patches[$package_name] as $description => $url) {
       $this->io->write('    <info>' . $url . '</info> (<comment>' . $description. '</comment>)');
       try {
-        $this->eventDispatcher->dispatch(NULL, new PatchEvent(PatchEvents::PRE_PATCH_APPLY, $package, $url, $description));
+        $this->eventDispatcher->dispatch(NULL, new PatchEvent(PatchEvents::PRE_PATCH_APPLY, $this->composer, $this->io, $package, $url, $description));
         $this->getAndApplyPatch($downloader, $install_path, $url, $package);
-        $this->eventDispatcher->dispatch(NULL, new PatchEvent(PatchEvents::POST_PATCH_APPLY, $package, $url, $description));
+        $this->eventDispatcher->dispatch(NULL, new PatchEvent(PatchEvents::POST_PATCH_APPLY, $this->composer, $this->io, $package, $url, $description));
         $extra['patches_applied'][$description] = $url;
       }
       catch (\Exception $e) {
         $this->io->write('   <error>Could not apply patch! Skipping. The error was: ' . $e->getMessage() . '</error>');
+        $this->eventDispatcher->dispatch(NULL, new PatchEvent(PatchEvents::PATCH_APPLY_ERROR, $this->composer, $this->io, $package, $url, $description, $e));
         if ($exitOnFailure) {
           throw new \Exception("Cannot apply patch $description ($url)!");
         }
@@ -389,9 +393,13 @@ class Patches implements PluginInterface, EventSubscriberInterface {
     // the 'patch' command.
     if (!$patched) {
       foreach ($patch_levels as $patch_level) {
+        //use --dry-run to check if patch applies to prevent partial patches same as --check in git apply
+        if (false === $this->executeCommand("patch %s --dry-run --posix -d %s < %s", $patch_level, $install_path, $filename)) {
+          continue;
+        }
         // --no-backup-if-mismatch here is a hack that fixes some
         // differences between how patch works on windows and unix.
-        if ($patched = $this->executeCommand("patch %s --no-backup-if-mismatch -d %s < %s", $patch_level, $install_path, $filename)) {
+        if ($patched = $this->executeCommand("patch %s --posix -d %s < %s", $patch_level, $install_path, $filename)) {
           break;
         }
       }
