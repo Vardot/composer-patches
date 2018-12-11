@@ -68,8 +68,8 @@ class Patches implements PluginInterface, EventSubscriberInterface {
    */
   public static function getSubscribedEvents() {
     return array(
-      ScriptEvents::PRE_INSTALL_CMD => array('checkPatches'),
-      ScriptEvents::PRE_UPDATE_CMD => array('checkPatches'),
+      //ScriptEvents::PRE_INSTALL_CMD => array('checkPatches'),
+      //ScriptEvents::PRE_UPDATE_CMD => array('checkPatches'),
       PackageEvents::PRE_PACKAGE_INSTALL => array('gatherPatches'),
       PackageEvents::PRE_PACKAGE_UPDATE => array('gatherPatches'),
       // The following is a higher weight for compatibility with
@@ -136,9 +136,6 @@ class Patches implements PluginInterface, EventSubscriberInterface {
             $uninstallOperation = new UninstallOperation($package, 'Removing package so it can be re-installed and re-patched.');
             $this->io->write('<info>Removing package ' . $package_name . ' so that it can be re-installed and re-patched.</info>');
             $installationManager->uninstall($localRepository, $uninstallOperation);
-            $installOperation = new InstallOperation($package, 'Re-install package.');
-            $this->io->write('<info>Re-installing package ' . $package_name . '.</info>');
-            $installationManager->install($localRepository, $installOperation);
           }
         }
       }
